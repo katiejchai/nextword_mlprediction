@@ -230,9 +230,9 @@ dump(list="barplot_fxn", file="functions/barplot_fxn.R")
 
 # make wordclouds
 uni_wc  <- wordcloud_fxn(plotdata_fxn(n=1, n_words=100))
-bi_wc   <- wordcloud_fxn(plotdata_fxn(n=2, n_words=80))
-tri_wc  <- wordcloud_fxn(plotdata_fxn(n=3, n_words=50))
-quad_wc <- wordcloud_fxn(plotdata_fxn(n=4, n_words=80))
+bi_wc   <- wordcloud_fxn(plotdata_fxn(n=2, n_words=100))
+tri_wc  <- wordcloud_fxn(plotdata_fxn(n=3, n_words=80))
+quad_wc <- wordcloud_fxn(plotdata_fxn(n=4, n_words=20))
 
 # make bar plots
 uni_bp  <- barplot_fxn(plotdata_fxn(n=1, n_words=10))
@@ -244,9 +244,12 @@ quad_bp <- barplot_fxn(plotdata_fxn(n=4, n_words=10))
 plotexport_fxn <- function(plotname, plottype=c("wc","bp"), 
                            filename, filetype=".png"){
   if(plottype=="wc"){
-    saveWidget(plotname,"temp.html", selfcontained=TRUE)
+    htmlwidgets::saveWidget(widget=plotname,"temp.html", selfcontained=FALSE)
     webshot("temp.html", paste0("figures/", filename, filetype), 
-            vwidth=800, vheight=800, delay=30)
+            vwidth=1000, vheight=800, delay=30)
+    
+    unlink("temp_files", recursive=TRUE)
+    unlink("temp.html")
   }
   if(plottype=="bp"){
     png(paste0("figures/", filename, filetype), width=600, height=600)
@@ -268,10 +271,7 @@ plotexport_fxn(bi_bp,   plottype="bp", "bi_barplot")
 plotexport_fxn(tri_bp,  plottype="bp", "tri_barplot")
 plotexport_fxn(quad_bp, plottype="bp", "quad_barplot")
 
-# remove unnecessary variables
-rm(plotdata_fxn, wordcloud_fxn, barplot_fxn, plotexport_fxn,
-   uni_wc, bi_wc, tri_wc, quad_wc, uni_bp, bi_bp, tri_bp, quad_bp)
+# remove remaining variables
+rm(list=ls())
 gc()
-
-
 
