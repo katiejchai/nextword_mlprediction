@@ -59,7 +59,7 @@ data_summary <- data.frame(
 )
 
 # export data summary
-write.csv(data_summary, file="outputdata/data_summary.csv", row.names=FALSE)
+saveRDS(data_summary, file="outputdata/data_summary.rds")
 
 # remove unnecessary variables
 rm(blogs_file, news_file, twitter_file, con, filename, filedir, 
@@ -71,20 +71,20 @@ gc()
 ### SAMPLE DATA ###############################################################
 
 # define sampling function
-sample_fxn <- function(dat, prob, seed=9876){
+sample_fxn <- function(dat, prob, seed=98765){
   set.seed(seed)
   sample(dat, size=length(dat)*prob)
 }
 dump(list="sample_fxn", file="functions/sample_fxn.R")
 
 # make samples
-blogs_sample   <- sample_fxn(blogs, 0.05)
+blogs_sample   <- sample_fxn(blogs, 0.08)
 news_sample    <- sample_fxn(news, 0.20)
-twitter_sample <- sample_fxn(twitter, 0.005)
+twitter_sample <- sample_fxn(twitter, 0.02)
 data_sample    <- c(blogs_sample, news_sample, twitter_sample)
 
 # export sampled data
-writeLines(data_sample, "outputdata/data_sample.txt")
+saveRDS(data_sample, "outputdata/data_sample.rds")
 
 # remove unnecessary variables
 rm(blogs, news, twitter, sample_fxn, 
@@ -95,17 +95,22 @@ gc()
 
 ### CLEAN DATA ################################################################
 
-# basic cleaning
-data_clean <- data_sample %>%
-  tolower(.) %>% # all lowercase
-  stri_trans_general(., id="Latin-ASCII") %>% # replace accented characters
-  str_remove_all(., "http[^[:space:]]*") %>% # remove urls
-  str_remove_all(., "[^[a-z ]]*") %>% # remove non alphabet/space chars
-  str_replace_all(., "\\s+", " ") %>% # remove extra between-word whitespaces
-  trimws(.) # remove leading/trailing whitespaces
+# input clean function
+inputclean_fxn <- function(inputtext){
+  # basic cleaning
+  input_clean <- inputtext %>%
+    tolower(.) %>% # all lowercase
+    stri_trans_general(., id="Latin-ASCII") %>% # replace accented characters
+    str_remove_all(., "http[^[:space:]]*") %>% # remove urls
+    str_remove_all(., "[^[a-z ]]*") %>% # remove non alphabet/space chars
+    str_replace_all(., "\\s+", " ") %>% # remove extra between-word whitespaces
+    trimws(.) # remove leading/trailing whitespaces
+  
+  input_clean
+}
+dump(list="inputclean_fxn", "functions/inputclean_fxn.R")
 
-# convert to tibble for tokenization
-data_tbl <- tibble(line=1:length(data_clean), text=data_clean)
+data_tbl <- tibble(text=inputclean_fxn(data_sample))
 
 # clean stop words dataset
 stop_words <- stop_words %>%
@@ -115,8 +120,9 @@ stop_words <- stop_words %>%
   unlist()
 
 # remove unnecessary variables
-rm(data_sample, data_clean)
+rm(data_sample, inputclean_fxn)
 gc()
+
 
 
 ### N-GRAMS ###################################################################
@@ -155,10 +161,10 @@ quadgram_df <- ngram_fxn(n=4) %>%
          !(item3 %in% profanity), !(item4 %in% profanity))
 
 # export n-grams
-write.csv(unigram_df,  "ngrams/unigram.csv",  row.names=FALSE)
-write.csv(bigram_df,   "ngrams/bigram.csv",   row.names=FALSE)
-write.csv(trigram_df,  "ngrams/trigram.csv",  row.names=FALSE)
-write.csv(quadgram_df, "ngrams/quadgram.csv", row.names=FALSE)
+saveRDS(unigram_df,  "outputdata/unigram.rds")
+saveRDS(bigram_df,   "outputdata/bigram.rds")
+saveRDS(trigram_df,  "outputdata/trigram.rds")
+saveRDS(quadgram_df, "outputdata/quadgram.rds")
 
 # remove n-grams with stop words
 # unigram
@@ -179,12 +185,6 @@ quad_nostop <- quadgram_df %>%
   filter(!(item1 %in% stop_words), !(item2 %in% stop_words), 
          !(item3 %in% stop_words), !(item4 %in% stop_words))
 
-# export no stop word n-grams
-write.csv(uni_nostop,  "ngrams/unigram_nostop.csv",  row.names=FALSE)
-write.csv(bi_nostop,   "ngrams/bigram_nostop.csv",   row.names=FALSE)
-write.csv(tri_nostop,  "ngrams/trigram_nostop.csv",  row.names=FALSE)
-write.csv(quad_nostop, "ngrams/quadgram_nostop.csv", row.names=FALSE)
-
 # remove unnecessary variables
 rm(ngram_fxn, profanity, stop_words)
 gc()
@@ -193,8 +193,8 @@ gc()
 
 ### EXPLORATORY PLOTS #########################################################
 
-# plot data function
-plotdata_fxn <- function(n=c(1,2,3,4), n_words, removestopwords=TRUE){
+# n-gram frequency data function
+freqngrams_fxn <- function(n=c(1,2,3,4), n_words=NULL, removestopwords=TRUE){
   if(removestopwords==TRUE){
     if(n==1){dat <- uni_nostop}; if(n==2){dat <- bi_nostop}
     if(n==3){dat <- tri_nostop}; if(n==4){dat <- quad_nostop}
@@ -208,9 +208,9 @@ plotdata_fxn <- function(n=c(1,2,3,4), n_words, removestopwords=TRUE){
     filter(!is.na(ngram)) %>%
     count(ngram, name="count") %>%
     arrange(desc(count)) %>%
-    slice_head(n=n_words)
+    slice_head(n=ifelse(is.null(n_words), nrow(dat), n_words))
 }
-dump(list="plotdata_fxn", file="functions/plotdata_fxn.R")
+dump(list="freqngrams_fxn", file="functions/freqngrams_fxn.R")
 
 # wordcloud function
 wordcloud_fxn <- function(dat){
@@ -229,16 +229,16 @@ barplot_fxn <- function(dat){
 dump(list="barplot_fxn", file="functions/barplot_fxn.R")
 
 # make wordclouds
-uni_wc  <- wordcloud_fxn(plotdata_fxn(n=1, n_words=100))
-bi_wc   <- wordcloud_fxn(plotdata_fxn(n=2, n_words=100))
-tri_wc  <- wordcloud_fxn(plotdata_fxn(n=3, n_words=80))
-quad_wc <- wordcloud_fxn(plotdata_fxn(n=4, n_words=20))
+uni_wc  <- wordcloud_fxn(freqngrams_fxn(n=1, n_words=100))
+bi_wc   <- wordcloud_fxn(freqngrams_fxn(n=2, n_words=100))
+tri_wc  <- wordcloud_fxn(freqngrams_fxn(n=3, n_words=80))
+quad_wc <- wordcloud_fxn(freqngrams_fxn(n=4, n_words=20))
 
 # make bar plots
-uni_bp  <- barplot_fxn(plotdata_fxn(n=1, n_words=10))
-bi_bp   <- barplot_fxn(plotdata_fxn(n=2, n_words=10))
-tri_bp  <- barplot_fxn(plotdata_fxn(n=3, n_words=10))
-quad_bp <- barplot_fxn(plotdata_fxn(n=4, n_words=10))
+uni_bp  <- barplot_fxn(freqngrams_fxn(n=1, n_words=10))
+bi_bp   <- barplot_fxn(freqngrams_fxn(n=2, n_words=10))
+tri_bp  <- barplot_fxn(freqngrams_fxn(n=3, n_words=10))
+quad_bp <- barplot_fxn(freqngrams_fxn(n=4, n_words=10))
 
 # save plots function
 plotexport_fxn <- function(plotname, plottype=c("wc","bp"), 
