@@ -120,7 +120,7 @@ stop_words <- stop_words %>%
   unlist()
 
 # remove unnecessary variables
-rm(data_sample, inputclean_fxn)
+rm(data_sample)
 gc()
 
 
@@ -191,7 +191,7 @@ gc()
 
 
 
-### EXPLORATORY PLOTS #########################################################
+### DEVELOPING PREDICTORS #############################################
 
 # n-gram frequency data function
 freqngrams_fxn <- function(n=c(1,2,3,4), n_words=NULL, removestopwords=TRUE){
@@ -211,6 +211,41 @@ freqngrams_fxn <- function(n=c(1,2,3,4), n_words=NULL, removestopwords=TRUE){
     slice_head(n=ifelse(is.null(n_words), nrow(dat), n_words))
 }
 dump(list="freqngrams_fxn", file="functions/freqngrams_fxn.R")
+
+# get frequencies of n-grams
+bigram_df   <- freqngrams_fxn(n=2, removestopwords=FALSE) %>%
+  filter(count>10)
+trigram_df  <- freqngrams_fxn(n=3, removestopwords=FALSE) %>%
+  filter(count>8)
+quadgram_df <- freqngrams_fxn(n=4, removestopwords=FALSE) %>%
+  filter(count>5)
+
+# convert n-gram frequency data to predictor tables
+bigram_pred <- bigram_df %>%
+  mutate(input=str_extract(ngram, "^([a-z]+)"), 
+         prediction=str_extract(ngram, "([a-z]+)$")) %>%
+  select(input, prediction)
+trigram_pred  <- trigram_df %>%
+  mutate(input=str_extract(ngram, "^([a-z]+ [a-z]+)"), 
+         prediction=str_extract(ngram, "([a-z]+)$")) %>%
+  select(input, prediction)
+quadgram_pred <- quadgram_df %>%
+  mutate(input=str_extract(ngram, "^([a-z]+ [a-z]+ [a-z]+)"), 
+         prediction=str_extract(ngram, "([a-z]+)$")) %>%
+  select(input, prediction)
+
+# export predictor tables
+saveRDS(bigram_pred,   "outputdata/bi_pred.rds")
+saveRDS(trigram_pred,  "outputdata/tri_pred.rds")
+saveRDS(quadgram_pred, "outputdata/quad_pred.rds")
+
+# remove unnecessary variables
+rm(bigram_df, trigram_df, quadgram_df)
+gc()
+
+
+
+### EXPLORATORY PLOTS #########################################################
 
 # wordcloud function
 wordcloud_fxn <- function(dat){
@@ -272,6 +307,7 @@ plotexport_fxn(tri_bp,  plottype="bp", "tri_barplot")
 plotexport_fxn(quad_bp, plottype="bp", "quad_barplot")
 
 # remove remaining variables
-rm(list=ls())
+rm(wordcloud_fxn, barplot_fxn, plotexport_fxn,
+   uni_wc, bi_wc, tri_wc, quad_wc, uni_bp, bi_bp, tri_bp, quad_bp)
 gc()
 

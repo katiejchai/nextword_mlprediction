@@ -11,42 +11,10 @@ source("functions/freqngrams_fxn.R")
 source("functions/inputclean_fxn.R")
 
 # n-grams
-unigram_df  <- readRDS("outputdata/unigram.rds")
-bigram_df   <- readRDS("outputdata/bigram.rds")
-trigram_df  <- readRDS("outputdata/trigram.rds")
-quadgram_df <- readRDS("outputdata/quadgram.rds")
-
-
-
-### DEVELOPING PREDICTORS #############################################
-
-# get frequencies of n-grams
-bigram_df   <- freqngrams_fxn(n=2, removestopwords=FALSE)
-trigram_df  <- freqngrams_fxn(n=3, removestopwords=FALSE)
-quadgram_df <- freqngrams_fxn(n=4, removestopwords=FALSE)
-
-# convert n-gram frequency data to predictor tables
-bigram_pred <- bigram_df %>%
-  mutate(input=str_extract(ngram, "^([a-z]+)"), 
-         prediction=str_extract(ngram, "([a-z]+)$")) %>%
-  select(input, prediction)
-trigram_pred  <- trigram_df %>%
-  mutate(input=str_extract(ngram, "^([a-z]+ [a-z]+)"), 
-         prediction=str_extract(ngram, "([a-z]+)$")) %>%
-  select(input, prediction)
-quadgram_pred <- quadgram_df %>%
-  mutate(input=str_extract(ngram, "^([a-z]+ [a-z]+ [a-z]+)"), 
-         prediction=str_extract(ngram, "([a-z]+)$")) %>%
-  select(input, prediction)
-
-# export predictor tables
-saveRDS(bigram_pred,   "outputdata/bi_pred.rds")
-saveRDS(trigram_pred,  "outputdata/tri_pred.rds")
-saveRDS(quadgram_pred, "outputdata/quad_pred.rds")
-
-# remove unnecessary variables
-rm(freqngrams_fxn, bigram_df, trigram_df, quadgram_df)
-gc()
+unigram_df    <- readRDS("outputdata/unigram.rds")
+bigram_pred   <- readRDS("outputdata/bi_pred.rds")
+trigram_pred  <- readRDS("outputdata/tri_pred.rds")
+quadgram_pred <- readRDS("outputdata/quad_pred.rds")
 
 
 
@@ -127,5 +95,4 @@ nextword_fxn <- function(inputtext){
   preds
 }
 dump(list="nextword_fxn", "functions/nextword_fxn.R")
-
 
