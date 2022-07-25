@@ -1,0 +1,117 @@
+---
+title: "Milestone Report"
+author: "Katie Chai"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+## Overview
+
+The purpose of the Johns Hopkins University Data Science Specialization Capstone Project is to develop a machine learning prediction model. The desired functionality of the model is to take a phrase (multiple word) input and predict the next word in the phrase.
+
+The datasets used in developing the machine learning model come from SwiftKey's blog, news, and twitter corpora. English will be the language of interest in this project, but there are also files available for German, Russian, and Finnish. The zip file containing all of the datasets can be downloaded from this [link](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip).
+
+```{r libraries}
+suppressMessages({
+  library(tidyverse); library(tidytext); library(tm);
+  library(stringi); library(wordcloud2); library(RColorBrewer);
+  library(htmlwidgets); library(webshot); library(kableExtra)
+})
+```
+
+```{r datadownload}
+blogs_file   <- "data/en_US/en_US.blogs.txt"
+news_file    <- "data/en_US/en_US.news.txt"
+twitter_file <- "data/en_US/en_US.twitter.txt"
+
+con <- file(blogs_file, open="r")
+blogs <- readLines(con, encoding="UTF-8", skipNul=TRUE)
+close(con)
+
+con <- file(news_file, open="r")
+news <- readLines(con, encoding="UTF-8", skipNul=TRUE)
+close(con)
+
+con <- file(twitter_file, open="r")
+twitter <- readLines(con, encoding="UTF-8", skipNul=TRUE)
+close(con)
+```
+
+The very first elements of each dataset are shown below (in order of blogs, news, twitter):
+
+```{r datafirstelement}
+blogs[1]
+news[1]
+twitter[1]
+```
+
+
+## Summary of Data Files
+
+A basic summary of the three data files are shown below:
+
+```{r summary}
+data_summary <- read.csv("outputdata/data_summary.csv", header=TRUE)
+
+data_summary %>%
+  kbl() %>%
+  kable_styling()
+```
+
+
+## Exploratory Data Analysis
+
+Before using the data in any analyses, it first had to be cleaned. The data was first randomly sampled to establish a smaller dataset still representative of the original data. Different proportions of each dataset were used: 5% of blogs, 20% of news, and 0.5% of twitter. This is because the sources have varying levels of grammatical correctness, which can affect the accuracy of the prediction model. News articles are typically grammatically perfect since they go through extensive editing processes; blogs tend to also be grammatically correct, but are susceptible to errors since they are not regulated; twitter posts can be very incorrect, especially since it is a form of social media, in which users use abbreviations and slang.
+
+Some basic processes that were performed on the sampled data included: converting to all lowercase, replacing accented characters, removing urls, removing other characters that were not alphabetical or whitespaces, and trimming extra whitespaces.
+
+The data was then tokenized into n-grams of n=1,2,3,4. Then, tokens with profanity were removed. Below, the word cloud diagrams and bar plots of the most common n-grams for each of the n values are shown. Stop words were removed from these plots to show words that are of more interest.
+
+```{r sourceplotdata}
+source("functions/plotdata_fxn.R")
+source("functions/wordcloud_fxn.R")
+source("functions/barplot_fxn.R")
+
+uni_nostop  <- read.csv("ngrams/unigram_nostop.csv",  header=TRUE)
+bi_nostop   <- read.csv("ngrams/bigram_nostop.csv",   header=TRUE)
+tri_nostop  <- read.csv("ngrams/trigram_nostop.csv",  header=TRUE)
+quad_nostop <- read.csv("ngrams/quadgram_nostop.csv", header=TRUE)
+```
+
+#### Uni-gram
+
+```{r uni_plots}
+wordcloud_fxn(plotdata_fxn(n=1, n_words=100))
+barplot_fxn(plotdata_fxn(n=1, n_words=10))
+```
+
+#### Bi-gram
+
+![](figures/bi_barplot.png)
+![](figures/bi_wordcloud.png)
+
+
+#### Tri-gram
+
+![](figures/tri_barplot.png)
+![](figures/tri_wordcloud.png)
+
+
+#### Quad-gram
+
+![](figures/quad_barplot.png)
+![](figures/quad_wordcloud.png)
+
+
+## Prediction Model Plan
+
+When establishing the prediction model for the Shiny app, the plan is to use all developed n-grams with n>1. When the user enters one word into the Shiny app input, the bi-gram will be used to predict the next word. When the user enters two words into the input, the tri-gram will be used to predict the next word based on the previous two words. Similarly, the quad-gram will be used to predict the next word based on the previous three words; this will be used for inputs of three words or more, where if the input has more than three words, the last three will be used in the quad-gram-based prediction.
+
+
+## Code
+
+The detailed code used to perform all of these analyses is available on [Github](https://github.com/katiejchai/nextword_mlprediction).
