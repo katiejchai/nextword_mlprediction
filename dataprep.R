@@ -239,6 +239,10 @@ saveRDS(bigram_pred,   "outputdata/bi_pred.rds")
 saveRDS(trigram_pred,  "outputdata/tri_pred.rds")
 saveRDS(quadgram_pred, "outputdata/quad_pred.rds")
 
+# save all predictor data as single .RData file
+save(unigram_df, bigram_pred, trigram_pred, quadgram_pred, 
+     file="outputdata/preddata.RData")
+
 # remove unnecessary variables
 rm(bigram_df, trigram_df, quadgram_df)
 gc()
